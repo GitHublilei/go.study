@@ -19,6 +19,7 @@ import (
 // LogLevel 日志级别
 type LogLevel uint16
 
+// UNKNOWN logLevel级别
 const (
 	UNKNOWN LogLevel = iota
 	DEBUG
