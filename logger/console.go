@@ -27,43 +27,44 @@ func (c ConsoleLogger) enable(logLevel LogLevel) bool {
 	return logLevel >= c.Level
 }
 
-func log(lv LogLevel, msg string) {
+func log(lv LogLevel, format string, a ...interface{}) {
+	msg := fmt.Sprintf(format, a...)
 	now := time.Now()
 	funcName, fileName, line := getInfo(3)
 	fmt.Printf("[%s] [%s] [%s:%s:%d] %s\n", now.Format("2006-01-02 15:04:05"), getLogString(lv), fileName, funcName, line, msg)
 }
 
 // Debug console debug function
-func (c ConsoleLogger) Debug(msg string) {
+func (c ConsoleLogger) Debug(format string, a ...interface{}) {
 	if c.enable(DEBUG) {
-		log(DEBUG, msg)
+		log(DEBUG, format, a...)
 	}
 }
 
 // Info console info function
-func (c ConsoleLogger) Info(msg string) {
+func (c ConsoleLogger) Info(format string, a ...interface{}) {
 	if c.enable(INFO) {
-		log(INFO, msg)
+		log(INFO, format, a...)
 	}
 }
 
 // Warning console warning function
-func (c ConsoleLogger) Warning(msg string) {
+func (c ConsoleLogger) Warning(format string, a ...interface{}) {
 	if c.enable(WARNING) {
-		log(WARNING, msg)
+		log(WARNING, format, a...)
 	}
 }
 
 // Error console error function
-func (c ConsoleLogger) Error(msg string) {
+func (c ConsoleLogger) Error(format string, a ...interface{}) {
 	if c.enable(ERROR) {
-		log(ERROR, msg)
+		log(ERROR, format, a...)
 	}
 }
 
 // Fatal console fatal function
-func (c ConsoleLogger) Fatal(msg string) {
+func (c ConsoleLogger) Fatal(format string, a ...interface{}) {
 	if c.enable(FATAL) {
-		log(FATAL, msg)
+		log(FATAL, format, a...)
 	}
 }
