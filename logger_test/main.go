@@ -6,10 +6,12 @@ import (
 	"github.com/go.study/logger"
 )
 
+var log logger.Logger
+
 // 测试日志相关内容
 func main() {
-	// log := logger.NewConsoleLogger("warning")
-	log := logger.NewFileLogger("info", "./", "viclilei", 10*1024*1024)
+	log = logger.NewConsoleLogger("warning")
+	// log = logger.NewFileLogger("info", "./", "viclilei", 10*1024*1024)
 	for {
 		log.Debug("this is a debug log")
 		log.Info("this is a info log")
