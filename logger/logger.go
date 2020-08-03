@@ -13,11 +13,20 @@ import (
 	2.日志分级别 （ Debug Trace Info Warning Error Fatal）
 	3.日志要支持开关控制
 	4.日志要有时间、行号、文件名、日志级别、日志信息
-	5.日志文件要切割
+	5.日志文件要切割(大小，日期)
 */
 
 // LogLevel 日志级别
 type LogLevel uint16
+
+// Logger 接口
+type Logger interface {
+	Debug(format string, a ...interface{})
+	Info(format string, a ...interface{})
+	Warning(format string, a ...interface{})
+	Error(format string, a ...interface{})
+	Fatal(format string, a ...interface{})
+}
 
 // UNKNOWN logLevel级别
 const (

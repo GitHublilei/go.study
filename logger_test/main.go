@@ -8,13 +8,16 @@ import (
 
 // 测试日志相关内容
 func main() {
-	log := logger.NewConsoleLogger("warning")
+	// log := logger.NewConsoleLogger("warning")
+	log := logger.NewFileLogger("info", "./", "viclilei", 10*1024*1024)
 	for {
 		log.Debug("this is a debug log")
 		log.Info("this is a info log")
 		log.Warning("this is a warning log")
-		log.Error("this is a error log %v", 111)
+
+		id := 10001
+		log.Error("this is a error log %v-%d", 111, id)
 		log.Fatal("this is a fatal log")
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 2)
 	}
 }

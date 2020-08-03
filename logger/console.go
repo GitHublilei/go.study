@@ -27,44 +27,36 @@ func (c ConsoleLogger) enable(logLevel LogLevel) bool {
 	return logLevel >= c.Level
 }
 
-func log(lv LogLevel, format string, a ...interface{}) {
-	msg := fmt.Sprintf(format, a...)
-	now := time.Now()
-	funcName, fileName, line := getInfo(3)
-	fmt.Printf("[%s] [%s] [%s:%s:%d] %s\n", now.Format("2006-01-02 15:04:05"), getLogString(lv), fileName, funcName, line, msg)
+func (c ConsoleLogger) log(lv LogLevel, format string, a ...interface{}) {
+	if c.enable(lv) {
+		msg := fmt.Sprintf(format, a...)
+		now := time.Now()
+		funcName, fileName, line := getInfo(3)
+		fmt.Printf("[%s] [%s] [%s:%s:%d] %s\n", now.Format("2006-01-02 15:04:05"), getLogString(lv), fileName, funcName, line, msg)
+	}
 }
 
 // Debug console debug function
 func (c ConsoleLogger) Debug(format string, a ...interface{}) {
-	if c.enable(DEBUG) {
-		log(DEBUG, format, a...)
-	}
+	c.log(DEBUG, format, a...)
 }
 
 // Info console info function
 func (c ConsoleLogger) Info(format string, a ...interface{}) {
-	if c.enable(INFO) {
-		log(INFO, format, a...)
-	}
+	c.log(INFO, format, a...)
 }
 
 // Warning console warning function
 func (c ConsoleLogger) Warning(format string, a ...interface{}) {
-	if c.enable(WARNING) {
-		log(WARNING, format, a...)
-	}
+	c.log(WARNING, format, a...)
 }
 
 // Error console error function
 func (c ConsoleLogger) Error(format string, a ...interface{}) {
-	if c.enable(ERROR) {
-		log(ERROR, format, a...)
-	}
+	c.log(ERROR, format, a...)
 }
 
 // Fatal console fatal function
 func (c ConsoleLogger) Fatal(format string, a ...interface{}) {
-	if c.enable(FATAL) {
-		log(FATAL, format, a...)
-	}
+	c.log(FATAL, format, a...)
 }
