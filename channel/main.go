@@ -176,10 +176,32 @@ func selectMain() {
 	}
 }
 
+// -------------
+
+// 向通道中发送值
+func sendNum(ch chan<- int) {
+	for {
+		num := rand.Intn(10)
+		ch <- num
+		time.Sleep(time.Second * 5)
+	}
+}
+
+func sendMain() {
+	ch := make(chan int, 1)
+	go sendNum(ch)
+	for {
+		x, ok := <-ch
+		fmt.Println(x, ok)
+		time.Sleep(time.Second)
+	}
+}
+
 func main() {
 	// bufChannel()
 	// expriChannel()
 	// workerMain()
 	// calcSumMain()
-	selectMain()
+	// selectMain()
+	sendMain()
 }

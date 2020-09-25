@@ -17,6 +17,16 @@ type FileLogger struct {
 	maxFileSize int64    // 日志文件最大size
 	fileObj     *os.File // 日志文件对象
 	errFileObj  *os.File
+	logChan     chan *logMsg
+}
+
+type logMsg struct {
+	level     LogLevel
+	msg       string
+	funcName  string
+	fileName  string
+	timestamp string
+	line      int
 }
 
 // NewFileLogger 构造函数
@@ -31,11 +41,18 @@ func NewFileLogger(levelStr, fp, fn string, maxSize int64) *FileLogger {
 		filePath:    fp,
 		fileName:    fn,
 		maxFileSize: maxSize,
+		logChan:     make(chan *logMsg, 50000),
 	}
 	fl.initFile() // 按照文件路径和文件名将文件打开
 	if err != nil {
 		panic(err)
 	}
+
+	// for i := 0; i < 2; i++ {
+	// 	go fl.writeLogBackground()
+	// }
+	// 开启一个goroutine执行，（多个操作一个文件会有问题）
+	go fl.writeLogBackground()
 	return fl
 }
 
@@ -98,12 +115,8 @@ func (f *FileLogger) enable(logLevel LogLevel) bool {
 	return logLevel >= f.Level
 }
 
-// 记录日志的方法
-func (f *FileLogger) log(lv LogLevel, format string, a ...interface{}) {
-	if f.enable(lv) {
-		msg := fmt.Sprintf(format, a...)
-		now := time.Now()
-		funcName, fileName, line := getInfo(3)
+func (f *FileLogger) writeLogBackground() {
+	for {
 		if f.checkSize(f.fileObj) {
 			newFile, err := f.splitFile(f.fileObj)
 			if err != nil {
@@ -112,17 +125,48 @@ func (f *FileLogger) log(lv LogLevel, format string, a ...interface{}) {
 			}
 			f.fileObj = newFile
 		}
-		fmt.Fprintf(f.fileObj, "[%s] [%s] [%s:%s:%d] %s\n", now.Format("2006-01-02 15:04:05"), getLogString(lv), fileName, funcName, line, msg)
-		if lv >= ERROR {
-			if f.checkSize(f.errFileObj) {
-				newFile, err := f.splitFile(f.errFileObj)
-				if err != nil {
-					fmt.Printf("split file failed, err:%v\n", err)
-					return
+		select {
+		case logTmp := <-f.logChan:
+			logInfo := fmt.Sprintf("[%s] [%s] [%s:%s:%d] %s\n", logTmp.timestamp, getLogString(logTmp.level), logTmp.fileName, logTmp.funcName, logTmp.line, logTmp.msg)
+			fmt.Fprintf(f.fileObj, logInfo)
+			if logTmp.level >= ERROR {
+				if f.checkSize(f.errFileObj) {
+					newFile, err := f.splitFile(f.errFileObj)
+					if err != nil {
+						fmt.Printf("split file failed, err:%v\n", err)
+						return
+					}
+					f.errFileObj = newFile
 				}
-				f.errFileObj = newFile
+				fmt.Fprintf(f.errFileObj, logInfo)
 			}
-			fmt.Fprintf(f.errFileObj, "[%s] [%s] [%s:%s:%d] %s\n", now.Format("2006-01-02 15:04:05"), getLogString(lv), fileName, funcName, line, msg)
+		default:
+			// 取不到日志休息500毫秒
+			time.Sleep(time.Millisecond * 500)
+		}
+	}
+}
+
+// 记录日志的方法
+func (f *FileLogger) log(lv LogLevel, format string, a ...interface{}) {
+	if f.enable(lv) {
+		msg := fmt.Sprintf(format, a...)
+		now := time.Now()
+		funcName, fileName, line := getInfo(3)
+		// 先把日志发送到通道中
+		logTmp := &logMsg{
+			level:     lv,
+			msg:       msg,
+			funcName:  funcName,
+			fileName:  fileName,
+			timestamp: now.Format("2006-01-02 15:04:05"),
+			line:      line,
+		}
+
+		select {
+		case f.logChan <- logTmp:
+		default:
+			// 把日志丢掉保证不出现阻塞
 		}
 	}
 }
