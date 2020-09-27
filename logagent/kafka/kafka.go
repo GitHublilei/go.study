@@ -50,3 +50,6 @@ func SendToKafka(topic, data string) {
 	}
 	fmt.Printf("pid:%v offset:%v\n", pid, offset)
 }
+
+// ./zookeeper-server-start.sh ../config/zookeeper.properties
+// ./kafka-server-start.sh ../config/server.properties
