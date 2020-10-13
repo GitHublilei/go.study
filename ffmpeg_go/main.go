@@ -37,8 +37,8 @@ func checkFileIsExist(filename string) (exist bool) {
 }
 
 // Cmd 命令行调用
-func Cmd(cmdn string, params []string) (result string, err error) {
-	cmd := exec.Command(cmdn, params...)
+func Cmd(cmdStr string, params []string) (result string, err error) {
+	cmd := exec.Command(cmdStr, params...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
@@ -56,9 +56,10 @@ func Cmd(cmdn string, params []string) (result string, err error) {
 // 格式转换
 func (m *manageInfo) convertVideo() {
 	defer wg.Done()
-	in := m.input + m.name
+	in := m.input + m.name + "." + m.fileType
 	out := m.input + m.output
-	cmdStr := fmt.Sprintf("ffmpeg -i %s -loglevel quiet -c copy -bsf:v h264_mp4toannexb -f mpegts %s", in, out)
+	// cmdStr := fmt.Sprintf("ffmpeg -i %s -loglevel quiet -c copy -bsf:v h264_mp4toannexb -f mpegts %s", in, out)
+	cmdStr := fmt.Sprintf("ffmpeg -i %s -vcodec copy -acodec copy %s", in, out)
 	args := strings.Split(cmdStr, " ")
 	msg, err := Cmd(args[0], args[1:])
 	if err != nil {
@@ -71,31 +72,44 @@ func (m *manageInfo) convertVideo() {
 // 剪切视频
 func (m *manageInfo) cutVideo() {
 	defer wg.Done()
-	in := m.input + m.name
-	out := m.input + m.output
-	cmdStr := fmt.Sprintf("ffmpeg -i %s -loglevel quiet -c copy -bsf:v h264_mp4toannexb -f mpegts %s", in, out)
-	args := strings.Split(cmdStr, " ")
-	msg, err := Cmd(args[0], args[1:])
-	if err != nil {
-		fmt.Printf("videoConvert failed, err:%v\n", err)
-		return
+	in := mi.input + mi.name + "." + mi.fileType
+	out := mi.input + mi.name
+	if len(m.times) <= 2 {
+		out = out + "_." + mi.fileType
+		ffmepgCut(m.times[0], m.times[1], in, out)
+	} else {
+		for i := 0; i < len(m.times)/2; i++ {
+
+		}
 	}
-	fmt.Println(msg)
+	// ffmpeg -ss 01:33:20 -to 01:59:30 -accurate_seek -i in.mp4 -codec copy -avoid_negative_ts 1 cut-2.mp4
 }
 
 // 合并视频
 func (m *manageInfo) concatVideo() {
 	defer wg.Done()
-	in := m.input + m.name
-	out := m.input + m.output
-	cmdStr := fmt.Sprintf("ffmpeg -i %s -loglevel quiet -c copy -bsf:v h264_mp4toannexb -f mpegts %s", in, out)
+	in := mi.input + mi.name + "." + mi.fileType
+	out := mi.input + mi.name
+	if len(m.times) <= 2 {
+		out = out + "_." + mi.fileType
+		ffmepgCut(m.times[0], m.times[1], in, out)
+	} else {
+		for i := 0; i < len(m.times)/2; i++ {
+
+		}
+	}
+	// ffmpeg -f concat -i filelist.txt -c copy out.mp4
+}
+
+func ffmepgCut(start, end, in, out string) bool {
+	cmdStr := fmt.Sprintf("ffmpeg -ss %s -to %s -accurate_seek -i %s -codec copy -avoid_negative_ts 1 %s", start, end, in, out)
 	args := strings.Split(cmdStr, " ")
-	msg, err := Cmd(args[0], args[1:])
+	_, err := Cmd(args[0], args[1:])
 	if err != nil {
 		fmt.Printf("videoConvert failed, err:%v\n", err)
-		return
+		return false
 	}
-	fmt.Println(msg)
+	return true
 }
 
 func initInfo() bool {
@@ -144,7 +158,7 @@ func setManageInfo(infoArr []string) bool {
 	mi.name = strings.Join(nameArr, ".")
 	if mt == "cut" || mt == "剪切" {
 		mi.dealType = "cut"
-
+		mi.times = infoArr[2:]
 	} else if mt == "convert" || mt == "转换" {
 		mi.dealType = "convert"
 		mi.output = mi.name + "." + infoArr[2]
