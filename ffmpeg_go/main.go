@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -78,8 +79,10 @@ func (m *manageInfo) cutVideo() {
 		out = out + "_." + mi.fileType
 		ffmepgCut(m.times[0], m.times[1], in, out)
 	} else {
+		out = mi.input + "cut_"
 		for i := 0; i < len(m.times)/2; i++ {
-
+			outStr := out + strconv.Itoa(i) + "." + mi.fileType
+			ffmepgCut(m.times[i*2], m.times[i*2+1], in, outStr)
 		}
 	}
 	// ffmpeg -ss 01:33:20 -to 01:59:30 -accurate_seek -i in.mp4 -codec copy -avoid_negative_ts 1 cut-2.mp4
@@ -99,6 +102,7 @@ func (m *manageInfo) concatVideo() {
 		}
 	}
 	// ffmpeg -f concat -i filelist.txt -c copy out.mp4
+	//file 'cut-1.mp4'
 }
 
 func ffmepgCut(start, end, in, out string) bool {
@@ -137,7 +141,6 @@ func initInfo() bool {
 		fmt.Println("config is not complete")
 		return false
 	}
-	fmt.Printf("%v\n", configArr)
 
 	return setManageInfo(configArr)
 }
