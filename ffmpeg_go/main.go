@@ -74,18 +74,39 @@ func (m *manageInfo) convertVideo() {
 func (m *manageInfo) cutVideo() {
 	defer wg.Done()
 	in := mi.input + mi.name + "." + mi.fileType
-	out := mi.input + mi.name
+	outName := mi.input + mi.name + "_." + mi.fileType
 	if len(m.times) <= 2 {
-		out = out + "_." + mi.fileType
-		ffmepgCut(m.times[0], m.times[1], in, out)
+		ffmepgCut(m.times[0], m.times[1], in, outName)
 	} else {
-		out = mi.input + "cut_"
+		file, err := os.OpenFile("./filelist.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			fmt.Printf("open filelist.txt failed, err:%v\n", err)
+			return
+		}
+		defer file.Close()
+
+		out := mi.input + "cut_"
+		outStrArr := make([]string, len(m.times)/2)
 		for i := 0; i < len(m.times)/2; i++ {
 			outStr := out + strconv.Itoa(i) + "." + mi.fileType
+			outStrArr[i] = outStr
+			file.WriteString(fmt.Sprintf("file '%s'\n", outStr))
 			ffmepgCut(m.times[i*2], m.times[i*2+1], in, outStr)
 		}
+		ffmepgConcat(outName)
+
+		for _, value := range outStrArr {
+			err := os.Remove(value)
+			if err != nil {
+				fmt.Printf("remove %s failed, err:%v\n", value, err)
+			}
+		}
+		err = os.Remove("./filelist.txt")
+		if err != nil {
+			fmt.Printf("remove filelist.txt failed, err:%v\n", err)
+			return
+		}
 	}
-	// ffmpeg -ss 01:33:20 -to 01:59:30 -accurate_seek -i in.mp4 -codec copy -avoid_negative_ts 1 cut-2.mp4
 }
 
 // 合并视频
@@ -101,16 +122,27 @@ func (m *manageInfo) concatVideo() {
 
 		}
 	}
-	// ffmpeg -f concat -i filelist.txt -c copy out.mp4
-	//file 'cut-1.mp4'
 }
 
 func ffmepgCut(start, end, in, out string) bool {
 	cmdStr := fmt.Sprintf("ffmpeg -ss %s -to %s -accurate_seek -i %s -codec copy -avoid_negative_ts 1 %s", start, end, in, out)
+	// 精确裁剪
+	// cmdStr := fmt.Sprintf("ffmpeg -ss %s -to %s -i %s -c:v libx264 -c:a aac -strict experimental -b:a 98k %s", start, end, in, out)
 	args := strings.Split(cmdStr, " ")
 	_, err := Cmd(args[0], args[1:])
 	if err != nil {
-		fmt.Printf("videoConvert failed, err:%v\n", err)
+		fmt.Printf("video cut failed, err:%v\n", err)
+		return false
+	}
+	return true
+}
+
+func ffmepgConcat(out string) bool {
+	cmdStr := fmt.Sprintf("ffmpeg -f concat -safe 0 -i filelist.txt -c copy %s", out)
+	args := strings.Split(cmdStr, " ")
+	_, err := Cmd(args[0], args[1:])
+	if err != nil {
+		fmt.Printf("video cut failed, err:%v\n", err)
 		return false
 	}
 	return true
@@ -121,7 +153,7 @@ func initInfo() bool {
 	exist := checkFileIsExist(configPath)
 	if !exist {
 		fmt.Println("config file not exist, please ")
-		newFile, err := os.Create("./config.txt")
+		newFile, err := os.Create(configPath)
 		if err != nil {
 			fmt.Printf("create config text failed, err:%v\n", err)
 			return false
